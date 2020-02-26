@@ -1,0 +1,16 @@
+&ocn_timemgr
+ calendar              = 'NO_LEAP',
+ start_year            = 2006,
+ start_month           = 01,
+ start_day             = 01,
+ start_hour            = 00,
+ start_minute          = 00,
+ start_second          = 00,
+ coupling_interval_m   = 10
+/
+
+&ocn_io
+ diag_level   = 99
+ input_script = "ocean.in"
+/
+

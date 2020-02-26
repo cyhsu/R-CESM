@@ -1,0 +1,17 @@
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/!svn/ver/45258/wrf/trunk_tags/wrf32_ccsm130325/bld
+END
+wrf.buildnml.csh
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/!svn/ver/45258/wrf/trunk_tags/wrf32_ccsm130325/bld/wrf.buildnml.csh
+END
+wrf.buildexe.csh
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/!svn/ver/45258/wrf/trunk_tags/wrf32_ccsm130325/bld/wrf.buildexe.csh
+END

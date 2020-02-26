@@ -1,0 +1,71 @@
+#!/usr/bin/env python
+
+"""
+create the wrf library
+"""
+import sys, os, filecmp, shutil, re, imp
+
+_CIMEROOT = os.environ.get("CIMEROOT")
+if _CIMEROOT is None:
+    raise SystemExit("ERROR: must set CIMEROOT environment variable")
+
+_LIBDIR = os.path.join(_CIMEROOT, "scripts", "Tools")
+sys.path.append(_LIBDIR)
+
+from standard_script_setup import *
+from CIME.case import Case
+from CIME.utils import run_cmd, expect
+from CIME.buildlib import parse_input
+
+logger = logging.getLogger(__name__)
+
+###############################################################################
+def _build_wrf():
+###############################################################################
+
+    caseroot, libroot, bldroot = parse_input(sys.argv)
+ 
+    with Case(caseroot) as case:
+
+        casetools = case.get_value("CASETOOLS")
+        srcroot = case.get_value("SRCROOT")
+        gmake_j = case.get_value("GMAKE_J")
+        gmake = case.get_value("GMAKE")
+        mach = case.get_value("MACH")
+        compiler = case.get_value("COMPILER")
+        casename = case.get_value("CASE")
+        ninst = case.get_value("NINST_VALUE")
+        bld_thrdd = case.get_value("BUILD_THREADED")
+        shrdlibroot = case.get_value("SHAREDLIBROOT")
+        mpilib = case.get_value("MPILIB")
+        debug = case.get_value("DEBUG")
+        
+
+        os.environ['NINST_VALUE'] = str(ninst)
+        os.environ['BUILD_THREADED'] = str(bld_thrdd)
+        os.environ['SHAREDLIBROOT'] = str(shrdlibroot)
+        os.environ['MPILIB'] = str(mpilib)
+        os.environ['DEBUG'] = str(debug)
+        logger.info("     debug environ set to "+str(os.environ['DEBUG']))
+
+        debugdir="debug"
+        if debug: 
+            debugdir="debug" 
+        else: 
+            debugdir="nodebug"
+
+        #-------------------------------------------------------
+        # Call wrf's buildexe.csh
+        #-------------------------------------------------------
+        cmdst = os.path.join(os.path.join(srcroot,"components","wrf","bld","wrf.buildexe.csh"))
+        cmd = "%s -objroot %s -coderoot %s -mach %s -comp %s -case %s -dbgdir %s" \
+               % (cmdst, bldroot, srcroot, mach, compiler, casename, debugdir)
+        logger.info("     ...calling wrf buildexe to build library")
+        rc, out, err = run_cmd(cmd)
+        logger.info("%s: \n\n output:\n %s \n\n err:\n\n%s\n"%(cmd,out,err))
+        expect(rc == 0, "Command %s failed with rc=%s" % (cmd, rc))
+
+###############################################################################
+
+if __name__ == "__main__":
+    _build_wrf()

@@ -1,0 +1,43 @@
+/glade/apps/opt/ncl/6.3.0/intel/12.1.5/bin/ncl
+---------------- PTCLMmkdata version PTCLM2.0_PTCLM_trunk-----------------------------
+
+   ../PTCLMmkdata --mksurfdata_opts=-no_crop --verbose --cycle_forcing --cesm_root ../../../../.. -s FL-Hyy -d /glade/p/cesmdata/cseg/inputdata --debug --sdate 140204 --map_gdate 140204 --mydatadir testing_dir/cyc_file_creation 
+
+   OPTIONS:
+
+Site name:						FL-Hyy
+
+Root CLM directory:					/glade/p/work/erik/clm_clean_trunk
+** Surface data file will be built using site-level data when available unless otherwise specified ** 
+
+	Extract PFT data from gridded files:		False
+	Extract soil data from gridded files:		False
+
+Open Site data file: /glade/p/work/erik/clm_clean_trunk/components/clm/tools/PTCLM/PTCLM_sitedata/PTCLMDATA_sitedata.txt
+
+CESM input data directory:				/glade/p/cesmdata/cseg/inputdata
+----------------------------------------------------------------
+
+Write /glade/p/work/erik/clm_clean_trunk/components/clm/tools/PTCLM/test/testing_dir/cyc_file_creation/1x1pt_FL-Hyy/README.PTCLM with command line
+Run command: /bin/chmod +x /glade/p/work/erik/clm_clean_trunk/components/clm/tools/PTCLM/test/testing_dir/cyc_file_creation/1x1pt_FL-Hyy/shell_commands
+Making input files for the point (this may take a while if creating transient datasets)
+Creating map file for a point with no ocean
+lat=61.8474
+Run command: /glade/p/work/erik/clm_clean_trunk/components/clm/tools/mkmapdata/mknoocnmap.pl -p 61.8474,24.2948 -name 1x1pt_FL-Hyy > /glade/p/work/erik/clm_clean_trunk/components/clm/tools/PTCLM/test/testing_dir/cyc_file_creation/1x1pt_FL-Hyy/mknoocnmap.log
+mapfile = /glade/p/work/erik/clm_clean_trunk/components/clm/tools/mkmapdata/map_1x1pt_FL-Hyy_noocean_to_1x1pt_FL-Hyy_nomask_aave_da_140204.nc
+scripgridfile = /glade/p/work/erik/clm_clean_trunk/components/clm/tools/mkmapgrids/SCRIPgrid_1x1pt_FL-Hyy_nomask_c140204.nc
+Creating data domain
+Run command: /glade/p/work/erik/clm_clean_trunk/cime/tools/mapping/gen_domain_files/gen_domain -m /glade/p/work/erik/clm_clean_trunk/components/clm/tools/mkmapdata/map_1x1pt_FL-Hyy_noocean_to_1x1pt_FL-Hyy_nomask_aave_da_140204.nc -o navy -l 1x1pt_FL-Hyy -c 'Running gen_domain from PTCLMmkdata' > /glade/p/work/erik/clm_clean_trunk/components/clm/tools/PTCLM/test/testing_dir/cyc_file_creation/1x1pt_FL-Hyy/gen_domain.log
+domainfile = domain.lnd.1x1pt_FL-Hyy_navy.140204.nc
+
+
+Re-create surface dataset:	
+
+
+Re-create mapping files for surface dataset:
+Run command: /glade/p/work/erik/clm_clean_trunk/components/clm/tools/mkmapdata/mkmapdata.sh --gridfile /glade/p/work/erik/clm_clean_trunk/components/clm/tools/mkmapgrids/SCRIPgrid_1x1pt_FL-Hyy_nomask_c140204.nc --res 1x1pt_FL-Hyy --gridtype regional -v > /glade/p/work/erik/clm_clean_trunk/components/clm/tools/PTCLM/test/testing_dir/cyc_file_creation/1x1pt_FL-Hyy/mkmapdata.log
+Replacing PFT information in surface data file
+Replacing soil information in surface data file
+ sandpct=82.0 claypct=5.0
+Run command: /glade/p/work/erik/clm_clean_trunk/components/clm/tools/mksurfdata_map/mksurfdata.pl -res usrspec -usr_gname 1x1pt_FL-Hyy -usr_gdate 140204 -usr_mapdir /glade/p/work/erik/clm_clean_trunk/components/clm/tools/PTCLM/test/testing_dir/cyc_file_creation/1x1pt_FL-Hyy -dinlc /glade/p/cesmdata/cseg/inputdata -y 2000 -soil_cly 5.0 -soil_snd 82.0 -pft_frc "[100.0]" -pft_idx "[2]" -no_crop --verbose > /glade/p/work/erik/clm_clean_trunk/components/clm/tools/PTCLM/test/testing_dir/cyc_file_creation/1x1pt_FL-Hyy/mksurfdata_map.log
+ERROR(../PTCLMmkdata):: Error running command: /glade/p/work/erik/clm_clean_trunk/components/clm/tools/mksurfdata_map/mksurfdata.pl -res usrspec -usr_gname 1x1pt_FL-Hyy -usr_gdate 140204 -usr_mapdir /glade/p/work/erik/clm_clean_trunk/components/clm/tools/PTCLM/test/testing_dir/cyc_file_creation/1x1pt_FL-Hyy -dinlc /glade/p/cesmdata/cseg/inputdata -y 2000 -soil_cly 5.0 -soil_snd 82.0 -pft_frc "[100.0]" -pft_idx "[2]" -no_crop --verbose > /glade/p/work/erik/clm_clean_trunk/components/clm/tools/PTCLM/test/testing_dir/cyc_file_creation/1x1pt_FL-Hyy/mksurfdata_map.log

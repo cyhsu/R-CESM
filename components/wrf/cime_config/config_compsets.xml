@@ -1,0 +1,100 @@
+<?xml version="1.0"?>
+
+<compsets>
+
+  <help>
+    =========================================
+    compset naming convention
+    =========================================
+    The compset longname below has the specified order
+    atm, lnd, ice, ocn, river, glc wave cesm-options
+
+    The notation for the compset longname is
+    TIME_ATM[%phys]_LND[%phys]_ICE[%phys]_OCN[%phys]_ROF[%phys]_GLC[%phys]_WAV[%phys][_BGC%phys]
+    Where for the CAM specific compsets below the following is supported
+    TIME = Time period (e.g. 2000, HIST, RCP8...)
+    ATM  = [CAM40, CAM50, CAM60, WRF]
+    LND  = [CLM40, CLM45, CLM50, SLND]
+    ICE  = [CICE, DICE, SICE]
+    OCN  = [DOCN, ,AQUAP, SOCN]
+    ROF  = [RTM, SROF]
+    GLC  = [CISM1, CISM2, SGLC]
+    WAV  = [SWAV]
+    BGC  = optional BGC scenario
+
+    The OPTIONAL %phys attributes specify submodes of the given system
+    For example DOCN%DOM is the data ocean model for DOCN
+    ALL the possible %phys choices for each component are listed
+    with the -list command for create_newcase
+    ALL data models must have a %phys option that corresponds to the data  model mode
+
+    Each compset node is associated with the following elements
+      - lname
+      - alias
+      - support  (optional description of the support level for this compset)
+    Each compset node can also have the following attributes
+      - grid  (optional regular expression match for grid to work with the compset)
+  </help>
+
+  <compset>
+    <alias>PKWUS2003</alias>
+    <lname>2003_WRF_CLM40%SP_DICE%SSMI_DOCN%DOM_SROF_SGLC_SWAV</lname>
+  </compset>
+  <compset>
+    <alias>PKGULF2010</alias>
+    <lname>2010_WRF_CLM40%SP_DICE%SSMI_DOCN%DOM_SROF_SGLC_SWAV</lname>
+  </compset>
+  <compset>
+    <alias>PBSGULF2010</alias>
+    <lname>2010_WRF_CLM40%SP_SICE_ROMS%XROMS_SROF_SGLC_SWAV</lname>
+  </compset>
+  <compset>
+    <alias>PKWUS2003CN</alias>
+    <lname>2003_WRF_CLM40%CN_DICE%SSMI_DOCN%DOM_SROF_SGLC_SWAV</lname>
+  </compset>
+  <compset>
+    <alias>PKWUS2003CLM45</alias>
+    <lname>2003_WRF_CLM45%SP_DICE%SSMI_DOCN%DOM_SROF_SGLC_SWAV</lname>
+  </compset>
+
+
+  <!-- ENTRIES -->
+
+  <entries>
+
+    <entry id="EPS_AGRID">
+      <values>
+	<value compset="2003_WRF">1.0e-3</value>
+	<value compset="2010_WRF">1.0e-3</value>
+      </values>
+    </entry>
+    <entry id="EPS_AAREA">
+      <values>
+	<value compset="2003_WRF">1.0e-3</value>
+	<value compset="2010_WRF">1.0e-3</value>
+      </values>
+    </entry>
+    <entry id="EPS_AMASK">
+      <values>
+	<value compset="2003_WRF">1.0e-3</value>
+	<value compset="2010_WRF">1.0e-3</value>
+      </values>
+    </entry>
+
+    <entry id="RUN_STARTDATE">
+      <values>
+	<value compset="2003_WRF">2003-10-01</value>
+	<value compset="2010_WRF">2010-01-01</value>
+      </values>
+    </entry>
+
+    <entry id="JOB_WALLCLOCK_TIME">
+      <values>
+	<value compset="2003_WRF">6:00:00</value>
+	<value compset="2010_WRF">10:00:00</value>
+      </values>
+    </entry>
+
+  </entries>
+
+</compsets>

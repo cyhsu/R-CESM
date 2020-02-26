@@ -1,0 +1,106 @@
+<?xml version="1.0"?>
+
+<compsets>
+
+  <help>
+    =========================================
+    compset naming convention
+    =========================================
+    The compset longname below has the specified order
+    atm, lnd, ice, ocn, river, glc wave cesm-options
+
+    The notation for the compset longname is
+    TIME_ATM[%phys]_LND[%phys]_ICE[%phys]_OCN[%phys]_ROF[%phys]_GLC[%phys]_WAV[%phys][_BGC%phys]
+    Where for the CAM specific compsets below the following is supported
+    TIME = Time period (e.g. 2000, HIST, RCP8...)
+    ATM  = [CAM40, CAM50, CAM60, WRF]
+    LND  = [CLM40, CLM45, CLM50, SLND]
+    ICE  = [CICE, DICE, SICE]
+    OCN  = [DOCN, ,AQUAP, SOCN]
+    ROF  = [RTM, SROF]
+    GLC  = [CISM1, CISM2, SGLC]
+    WAV  = [SWAV]
+    BGC  = optional BGC scenario
+
+    The OPTIONAL %phys attributes specify submodes of the given system
+    For example DOCN%DOM is the data ocean model for DOCN
+    ALL the possible %phys choices for each component are listed
+    with the -list command for create_newcase
+    ALL data models must have a %phys option that corresponds to the data  model mode
+
+    Each compset node is associated with the following elements
+      - lname
+      - alias
+      - support  (optional description of the support level for this compset)
+    Each compset node can also have the following attributes
+      - grid  (optional regular expression match for grid to work with the compset)
+  </help>
+
+  <compset>
+    <alias>PRGULF2010</alias>
+    <lname>2000_DATM%IAF_SLND_DICE%IAF_ROMS_SROF_SGLC_SWAV</lname>
+  </compset>
+
+  <compset>
+    <alias>PRSXGULF2010</alias>
+    <lname>2000_DATM%IAF_SLND_SICE_ROMS%XROMS_SROF_SGLC_SWAV</lname>
+  </compset>
+
+  <!-- The PRSGULF2010 compset is the only one verified to work in a DATM setting -->
+  <compset>
+    <alias>PRSGULF2010</alias>
+    <lname>2000_DATM%IAF_SLND_SICE_ROMS_SROF_SGLC_SWAV</lname>
+  </compset>
+
+  <!-- The PRDXGULF2010 compset is the only one that is verified to work with -->
+  <!-- the maps used in the coupled simulation case -->
+
+  <compset>
+    <alias>PRDXGULF2010</alias>
+    <lname>2000_DATM%IAF_SLND_DICE%SSMI_ROMS%XROMS_SROF_SGLC_SWAV</lname>
+  </compset>
+
+  <!-- ENTRIES -->
+
+  <entries>
+
+    <entry id="EPS_AGRID">
+      <values>
+	<value compset="ROMS">1.0e-2</value>
+	<value compset="ROMS%XROMS">1.0e-2</value>
+      </values>
+    </entry>
+    <entry id="EPS_AAREA">
+      <values>
+	<value compset="ROMS">1.0e-2</value>
+	<value compset="ROMS%XROMS">1.0e-2</value>
+      </values>
+    </entry>
+    <entry id="EPS_AMASK">
+      <values>
+	<value compset="ROMS">1.0e-2</value>
+	<value compset="ROMS%XROMS">1.0e-2</value>
+      </values>
+    </entry>
+    <entry id="RUN_STARTDATE">
+      <values>
+	<value compset="ROMS">2010-01-01</value>
+	<value compset="ROMS%XROMS">2010-01-01</value>
+      </values>
+    </entry>
+    <entry id="STOP_OPTION">
+      <values>
+	<value compset="ROMS">ndays</value>
+	<value compset="ROMS%XROMS">ndays</value>
+      </values>
+    </entry>
+    <entry id="STOP_N">
+      <values>
+	<value compset="ROMS">5</value>
+	<value compset="ROMS%XROMS">5</value>
+      </values>
+    </entry>
+
+  </entries>
+
+</compsets>

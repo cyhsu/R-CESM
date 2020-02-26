@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+
+<entry_id version="3.0">
+
+  <description modifier_mode="*">
+    <!--
+	===============
+	WRF
+	===============
+    -->
+    <desc atm="WRF"      >WRF regional model</desc>
+  </description>
+
+  <entry id="COMP_ATM">
+    <type>char</type>
+    <valid_values>wrf</valid_values>
+    <default_value>wrf</default_value>
+    <group>case_comp</group>
+    <file>env_case.xml</file>
+    <desc>Name of atmospheric component</desc>
+  </entry>
+
+  <help>
+    =========================================
+    WRF naming conventions
+    =========================================
+  </help>
+
+</entry_id>

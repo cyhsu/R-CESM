@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+
+<entry_id vresion="3.0">
+
+  <!-- modifier_mode allowed values are
+       '*' 0 or more modifiers (default)
+       '1' exactly 1 modifier
+       '?' 0 or 1 modifiers
+       '+' 1 or more modifiers
+
+       This file may have ocn desc entries.
+  -->
+
+  <description modifier_mode="1">
+    <desc ocn="ROMS[%NULL][%XROMS]">ROMS</desc>
+    <desc option="NULL">  full domain interactive</desc>
+    <desc option="XROMS">  domain extended with data ocn</desc>
+  </description>
+
+  <entry id="COMP_OCN">
+    <type>char</type>
+    <valid_values>roms</valid_values>
+    <default_value>roms</default_value>
+    <group>case_comp</group>
+    <file>env_case.xml</file>
+    <desc>Name of ocean component</desc>
+  </entry>
+
+  <entry id="ROMS_MODE">
+    <type>char</type>
+    <valid_values>xroms,null</valid_values>
+    <default_value>null</default_value>
+    <values>
+      <value compset="ROMS%XROMS">xroms</value>
+      <value compset="ROMS%NULL">null</value>
+    </values>
+    <group>run_component_roms</group>
+    <file>env_run.xml</file>
+    <desc>ROMS mode. In default or null mode, only ROMS runs, and the 
+      domain and grid must match the ROMS grid exactly. In XROMS mode,
+      The domain can be larger than the ROMS grid, and the extra area
+      is filled in with data ocean values. As designed by Raffaele 
+      Montuoro. </desc>
+    </entry>
+
+</entry_id>
+

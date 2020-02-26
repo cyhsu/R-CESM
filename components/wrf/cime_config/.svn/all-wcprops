@@ -1,0 +1,47 @@
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/!svn/ver/82468/pop2/trunk_tags/cesm_pop_2_1_20161229/cime_config
+END
+config_compsets.xml
+K 25
+svn:wc:ra_dav:version-url
+V 85
+/!svn/ver/82468/pop2/trunk_tags/cesm_pop_2_1_20161229/cime_config/config_compsets.xml
+END
+buildcpp
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/!svn/ver/82468/pop2/trunk_tags/cesm_pop_2_1_20161229/cime_config/buildcpp
+END
+user_nl_pop
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/!svn/ver/82468/pop2/trunk_tags/cesm_pop_2_1_20161229/cime_config/user_nl_pop
+END
+buildlib
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/!svn/ver/82468/pop2/trunk_tags/cesm_pop_2_1_20161229/cime_config/buildlib
+END
+buildnml
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/!svn/ver/82468/pop2/trunk_tags/cesm_pop_2_1_20161229/cime_config/buildnml
+END
+config_component.xml
+K 25
+svn:wc:ra_dav:version-url
+V 86
+/!svn/ver/82468/pop2/trunk_tags/cesm_pop_2_1_20161229/cime_config/config_component.xml
+END
+config_pes.xml
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/!svn/ver/82468/pop2/trunk_tags/cesm_pop_2_1_20161229/cime_config/config_pes.xml
+END

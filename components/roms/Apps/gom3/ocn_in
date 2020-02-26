@@ -1,0 +1,15 @@
+&ocn_timemgr
+    calendar     = 'GREGORIAN'
+    start_year   = 2010
+    start_month  = 01
+    start_day    = 01
+    start_hour   = 00
+    start_minute = 00
+    start_second = 00
+/
+
+&ocn_io
+ diag_level   = 0
+ input_script = "ocean.in"
+/
+

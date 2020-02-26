@@ -1,0 +1,132 @@
+#!/usr/bin/env python
+
+"""ROMS namelist creator
+"""
+
+# Typically ignore this.
+# pylint: disable=invalid-name
+
+# Disable these because this is our standard setup
+# pylint: disable=wildcard-import,unused-wildcard-import,wrong-import-position
+
+import os, shutil, sys, glob, stat, filecmp, imp
+
+CIMEROOT = os.environ.get("CIMEROOT")
+if CIMEROOT is None:
+    raise SystemExit("ERROR: must set CIMEROOT environment variable")
+sys.path.append(os.path.join(CIMEROOT, "scripts", "Tools"))
+
+from standard_script_setup import *
+from CIME.case import Case
+from CIME.nmlgen import NamelistGenerator
+from CIME.utils import expect
+from CIME.buildnml import create_namelist_infile, parse_input
+from CIME.utils import run_cmd
+
+logger = logging.getLogger(__name__)
+
+# pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
+###############################################################################
+def buildnml(case, caseroot, compname):
+###############################################################################
+    """Build the roms namelist """
+
+    # Build the component namelist 
+    if compname != "roms":
+        raise AttributeError
+
+    cimeroot = case.get_value("CIMEROOT")
+    srcroot = case.get_value("SRCROOT")
+    exeroot = case.get_value("EXEROOT")
+    continue_run = case.get_value("CONTINUE_RUN")
+    casename = case.get_value("CASE")
+    get_refcase = case.get_value("GET_REF_CASE")
+    ninst = case.get_value("NINST_OCN")
+    ocn_grid = case.get_value("OCN_GRID")
+    run_type = case.get_value("RUN_TYPE")
+    run_refcase = case.get_value("RUN_REF CASE")
+    run_refdate = case.get_value("RUN_REFDATE")
+    rundir = case.get_value("RUNDIR")
+    testcase = case.get_value("TESTCASE")
+    ntasks_atm = case.get_value("NTASKS_ATM")
+    startdate = case.get_value("RUN_STARTDATE")
+    starttod = case.get_value("START_TOD")
+    stopoption = case.get_value("STOP_OPTION")
+    stopn = case.get_value("STOP_N")
+    dinlocroot = case.get_value("DIN_LOC_ROOT")
+    ntasks = case.get_value("NTASKS_OCN")
+
+
+    # Set pop configuration directory
+    confdir = os.path.join(caseroot,"Buildconf","romsconf")
+    if not os.path.isdir(confdir):
+        os.makedirs(confdir)
+
+    # Make sure that rundir exists, if not make it 
+    if not os.path.exists(rundir):
+        os.makedirs(rundir)
+
+    # assume the domain descript nc file is under dinlocroot/share/domains
+    ddomain = os.path.join(dinlocroot,"share","domains")
+
+   #----------------------------------------------------
+    # Loop over instances
+    #----------------------------------------------------
+    for inst_counter in range(1, ninst+1):
+
+        # determine instance string
+        inst_string = ""
+        if ninst > 1:
+            inst_string = '_' + '%04d' % inst_counter
+
+        # create namelist_infile using user_nl_file as input
+        user_nl_file = os.path.join(caseroot, "user_nl_roms" + inst_string)
+        expect(os.path.isfile(user_nl_file),
+               "Missing required user_nl_file %s " %(user_nl_file))
+        infile = os.path.join(confdir, "namelist_infile")
+        create_namelist_infile(case, user_nl_file, infile)
+                        
+    	# ------------------------------------------------------------------------------
+    	# call build-namelist - output will go in caseroot/Buildconf/romsconf/ocn_in
+    	# ------------------------------------------------------------------------------
+    	# determine the directory containing build-namelist script
+    	# first check to see if build-namelist exists in SourceMods, if it exists use it
+        bldnml_dir = os.path.join(srcroot,"components","roms","bld")
+ 
+        # now call build-namelist
+        cmd = os.path.join(bldnml_dir, "roms.buildnml.csh")
+        if inst_string:
+           command = "%s -ntasks %s -continue %s -startdate %s -starttod %s -ocngrid %s -coderoot %s \
+                -rundir %s -dinlocroot %s -inst_string %s -domfile %s" \
+                % (cmd, ntasks, continue_run, startdate, starttod, ocn_grid, srcroot, \
+                   rundir, dinlocroot, inst_string, ddomain)
+        else:
+           command = "%s -ntasks %s -continue %s -startdate %s -starttod %s -ocngrid %s -coderoot %s \
+                  -rundir %s -dinlocroot %s -domfile %s" \
+                  % (cmd, ntasks, continue_run, startdate, starttod, ocn_grid, srcroot, \
+                    rundir, dinlocroot, ddomain)      
+        
+        rc, out, err = run_cmd(command, from_dir=confdir)
+        expect(rc==0,"Command %s failed rc=%d\nout=%s\nerr=%s"%(cmd,rc,out,err))
+        if out is not None:
+           logger.debug("     %s"%out)
+        if err is not None:
+           logger.debug("     %s"%err)
+
+    # copy pop namelist files from confdir to rundir
+    #if os.path.isdir(rundir):
+    #    file_src  = os.path.join(confdir, "wrf_in")
+    #    file_dest = os.path.join(rundir, "wrf_in")
+    #    shutil.copy(file_src, file_dest)
+
+
+###############################################################################
+def _main_func():
+
+    caseroot = parse_input(sys.argv)
+    with Case(caseroot) as case:
+        buildnml(case, caseroot, "roms")
+
+if __name__ == "__main__":
+    _main_func()
+

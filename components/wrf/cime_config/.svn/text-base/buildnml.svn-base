@@ -1,0 +1,217 @@
+#!/usr/bin/env python
+
+"""POP namelist creator
+"""
+
+# Typically ignore this.
+# pylint: disable=invalid-name
+
+# Disable these because this is our standard setup
+# pylint: disable=wildcard-import,unused-wildcard-import,wrong-import-position
+
+import os, shutil, sys, glob, stat, filecmp, imp
+
+CIMEROOT = os.environ.get("CIMEROOT")
+if CIMEROOT is None:
+    raise SystemExit("ERROR: must set CIMEROOT environment variable")
+sys.path.append(os.path.join(CIMEROOT, "scripts", "Tools"))
+
+from standard_script_setup import *
+from CIME.case import Case
+from CIME.nmlgen import NamelistGenerator
+from CIME.utils import expect
+from CIME.buildnml import create_namelist_infile, parse_input
+from CIME.utils import run_cmd
+
+logger = logging.getLogger(__name__)
+
+# pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
+###############################################################################
+def buildnml(case, caseroot, compname):
+###############################################################################
+    """Build the pop namelist """
+
+    # Build the component namelist 
+    if compname != "pop":
+        raise AttributeError
+
+    cimeroot = case.get_value("CIMEROOT")
+    srcroot = case.get_value("SRCROOT")
+    din_loc_root = case.get_value("DIN_LOC_ROOT")
+    exeroot = case.get_value("EXEROOT")
+    continue_run = case.get_value("CONTINUE_RUN")
+    casename = case.get_value("CASE")
+    get_refcase = case.get_value("GET_REF_CASE")
+    ninst = case.get_value("NINST_OCN")
+    ocn_grid = case.get_value("OCN_GRID")
+    run_type = case.get_value("RUN_TYPE")
+    run_refcase = case.get_value("RUN_REF CASE")
+    run_refdate = case.get_value("RUN_REFDATE")
+    rundir = case.get_value("RUNDIR")
+    testcase = case.get_value("TESTCASE")
+    ntasks_ocn = case.get_value("NTASKS_OCN")
+    ntasks = ntasks_ocn / ninst
+
+    # Obtain correct pop rpointer files
+    if testcase != 'SBN':
+        if get_refcase and run_type == "startup" and not continue_run:
+            # During prestage step, rpointer files are copied from refdir
+            # Get rid of old rpointer files if they exist and copy them 
+            # independently of the prestage.  This is needed for rerunability
+            # of cases from `refcase` data for first run
+            
+            filenames = glob.glob(rundir + '/rpointer.ocn*')
+            for filename in filenames:
+                os.remove(filename)
+	
+            refdir = os.path.join(din_loc_root,"ccsm4_init",run_refcase,run_refdate)
+            filenames = glob.glob(refdir + '/rpointer.ocn*')
+            for filename in filenames:
+                shutil.copy(filename, rundir)
+                destfile = os.path.join(rundir,filename)
+                st = os.stat(destfile)
+                os.chmod(destfile, st.st_mode | stat.S_IWUSR)
+
+    # call buildcpp to obtain config_cache.xml file which is needed to set pop namelist
+    call_buildcpp = False
+    if not os.path.exists(os.path.join(caseroot,"LockedFiles","env_build.xml")):
+        call_buildcpp = True
+    else:
+        file1 = os.path.join(caseroot,"env_build.xml")  
+        file2 = os.path.join(caseroot,"LockedFiles","env_build.xml")
+        if not filecmp.cmp(file1, file2):
+            call_buildcpp = True
+    if call_buildcpp:
+        cmd = os.path.join(os.path.join(srcroot,"components","pop","cime_config","buildcpp"))
+        logger.info("     ...calling pop buildcpp to set build time options")
+        try:
+            mod = imp.load_source("buildcpp", cmd)
+            mod.buildcpp(case)
+        except:
+            raise
+
+    # Set pop configuration directory
+    confdir = os.path.join(caseroot,"Buildconf","popconf")
+    if not os.path.isdir(confdir):
+        os.makedirs(confdir)
+
+    # Make sure that rundir exists, if not make it 
+    if not os.path.exists(rundir):
+        os.makedirs(rundir)
+        
+    # Loop over instances
+    inst_counter = 1;
+    inst_string = ""
+    while (inst_counter <= ninst):
+
+        # determine instance string 
+        inst_string = ""       
+        if ninst > 1:
+            inst_string = '_' + '%04d' % inst_counter
+
+        # If multi-instance = case does not have restart file, 
+        # use single-= case restart for each instance
+        suffixes = ["ovf", "restart", "tavg"]
+        for suffix in suffixes:
+            # See if rpointer.ocn.`suffix` exists and rpointer.ocn`inst_string`.`suffix` does not
+            file1 = os.path.join(rundir,"rpointer.ocn"+"inst_string."+suffix)
+            file2 = os.path.join(rundir,"rpointer.ocn"+suffix)
+            if not os.path.isfile(file1) and os.path.isfile(file1):
+                shutil.copy(file2,file1)
+
+        # create namelist_infile using user_nl_file as input
+        user_nl_file = os.path.join(caseroot, "user_nl_pop" + inst_string)
+        expect(os.path.isfile(user_nl_file),
+               "Missing required user_nl_file %s " %(user_nl_file))
+        infile = os.path.join(confdir, "namelist_infile")
+        create_namelist_infile(case, user_nl_file, infile)
+
+        # set environment variable declaring type of pop restart file (nc vs bin) 
+        # RESTART_INPUT_TS_FMT is needed by pop's build-namelist and is not in any xml files; 
+        # it comes from rpointer.ocn.restart, which is in `rundir` for continued runs, 
+        # but is in `refdir` for hybrid / branch runs that are not continuations
+
+        pointer_file = os.path.join(rundir,"rpointer.ocn" + inst_string + ".restart")
+        if get_refcase and run_type != 'startup' and not continue_run:
+            # During prestage step, rpointer files are copied from refdir
+            refdir = os.path.join(din_loc_root,"ccsm4_init",run_refcase,run_refdate)
+            pointer_file = os.path.join(refdir,"rpointer.ocn" + inst_string + ".restart")
+            if not os.path.isfile(pointer_file):
+                pointer_file = os.path.join(rundir,"rpointer.ocn" + inst_string + "restart")
+  
+        if run_type == 'startup' and not continue_run:
+            check_pointer_file = False
+        else:
+            check_pointer_file = True
+
+        format = 'bin'
+        if check_pointer_file:
+            if 'RESTART_FMT=nc' in open(pointer_file).read():
+                format = 'nc'
+        os.environ["RESTART_INPUT_TS_FMT"] = format
+                        
+        # ------------------------------------------------------------------------------
+        # call build-namelist - output will go in caseroot/Buildconf/popconf/ocn_in
+        # ------------------------------------------------------------------------------
+        # check to see if "-preview" flag should be passed
+        if os.environ.get("PREVIEW_NML") is not None:
+            preview_flag = "-preview"
+        else:
+            preview_flag = ""
+    
+        # determine the directory containing build-namelist script
+        # first check to see if build-namelist exists in SourceMods, if it exists use it
+        bldnml_dir = os.path.join(srcroot,"components","pop","bld")
+        cfg_flag = ""
+        if os.path.isfile(os.path.join(caseroot,"SourceMods","src.pop","build-namelist")):
+            bldnml_dir = os.path.join(caseroot,"SourceMods","src.pop")
+            cfg_flag = "-cfg_dir " + os.path.join(srcroot,"components","pop","bld")
+  
+        # now call build-namelist
+        cmd = os.path.join(bldnml_dir, "build-namelist")
+        if inst_string:
+            inst_string_arg = "-inst_string %s " %inst_string
+        else:
+            inst_string_arg = ""
+        if inst_string:
+            command = "%s %s %s -infile %s -caseroot %s -cimeroot %s -ocn_grid %s -ntasks %s -inst_string %s " \
+                  % (cmd, cfg_flag, preview_flag, infile, caseroot, cimeroot, ocn_grid, ntasks, inst_string)
+        else:
+            command = "%s %s %s -infile %s -caseroot %s -cimeroot %s -ocn_grid %s -ntasks %s" \
+                  % (cmd, cfg_flag, preview_flag, infile, caseroot, cimeroot, ocn_grid, ntasks)
+        
+        rc, out, err = run_cmd(command, from_dir=confdir)
+        expect(rc==0,"Command %s failed rc=%d\nout=%s\nerr=%s"%(cmd,rc,out,err))
+        if out is not None:
+            logger.debug("     %s"%out)
+        if err is not None:
+            logger.debug("     %s"%err)
+
+        # Note that pop's build-namelist invokes xmlchange - so must re-read the xml files variables
+        # back into case 
+        case.read_xml()
+
+        # copy pop namelist files from confdir to rundir
+        if os.path.isdir(rundir):
+            file_src  = os.path.join(confdir, "pop_in")
+            file_dest = os.path.join(rundir, "pop_in")
+            if inst_string:
+                file_dest += inst_string
+            shutil.copy(file_src, file_dest)
+            file_src = os.path.join(confdir, ocn_grid + "_tavg_contents")
+            file_dest = os.path.join(rundir, ocn_grid + "_tavg_contents")
+            shutil.copy(file_src, file_dest)
+
+            # increment instance counter
+            inst_counter = inst_counter + 1
+
+###############################################################################
+def _main_func():
+
+    caseroot = parse_input(sys.argv)
+    with Case(caseroot) as case:
+        buildnml(case, caseroot, "pop")
+
+if __name__ == "__main__":
+    _main_func()
+

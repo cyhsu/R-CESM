@@ -1,0 +1,12 @@
+cime                               https://github.com/Katetc/cime/branches/katec/addwrf
+components/cam                     https://svn-ccsm-models.cgd.ucar.edu/cam1/trunk_tags/cam5_4_99/components/cam
+components/wrf			   https://svn-ccsm-models.cgd.ucar.edu/wrf/trunk_tags/wrf32_ccsm130325
+components/clm                     https://svn-ccsm-models.cgd.ucar.edu/clm2/trunk_tags/clm4_5_14_r213/components/clm
+components/cice                    https://svn-ccsm-models.cgd.ucar.edu/cice/trunk_tags/cice5_20170113
+components/pop                     https://svn-ccsm-models.cgd.ucar.edu/pop2/trunk_tags/cesm_pop_2_1_20161229
+components/cism                    https://svn-ccsm-models.cgd.ucar.edu/glc/trunk_tags/cism2_1_29
+components/aquap                   https://svn-ccsm-models.cgd.ucar.edu/aquap/trunk_tags/aquap_161219
+components/rtm                     https://svn-ccsm-models.cgd.ucar.edu/rivrtm/trunk_tags/rtm1_0_59
+components/ww3                     https://svn-ccsm-models.cgd.ucar.edu/ww3/trunk_tags/ww3_170103
+components/mosart                  https://svn-ccsm-models.cgd.ucar.edu/mosart/trunk_tags/mosart1_0_19
+

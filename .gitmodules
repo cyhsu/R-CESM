@@ -1,0 +1,4 @@
+[submodule "cime"]
+	path = cime
+	url = https://github.com/Katetc/cime.git
+	branch = katec/addwrf

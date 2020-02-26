@@ -1,0 +1,15 @@
+&ocn_timemgr
+    calendar     = 'GREGORIAN'
+    start_year   = CASE_ST_YR
+    start_month  = CASE_ST_MO
+    start_day    = CASE_ST_DA
+    start_hour   = CASE_ST_HR
+    start_minute = CASE_ST_MI
+    start_second = CASE_ST_SE
+/
+
+&ocn_io
+ diag_level   = 0
+ input_script = "ocean.in"
+/
+

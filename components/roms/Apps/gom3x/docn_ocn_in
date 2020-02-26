@@ -1,0 +1,11 @@
+&shr_strdata_nml
+ datamode = 'SSTDATA'
+ domainfile = 'replacedomainfile/domain.ocn.gom3x.180129.nc'
+ fillalgo = 'nn'
+ fillmask = 'nomask'
+ mapalgo = 'bilinear'
+ mapmask = 'dstmask'
+ streams = "docn.streams.txt.prescribed 2010 2010 2010"
+ taxmode = 'limit'
+ tintalgo = 'linear'
+/

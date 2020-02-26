@@ -1,0 +1,510 @@
+!BOP
+!   !MODULE: ocn_io_tools
+!   !INTERFACE:
+
+module ocn_io_tools
+
+!   !DESCRIPTION:
+!   Auxiliary routines for ocean model input/output
+!
+!   !REVISION HISTORY:
+!   Apr 23, 2012 - Raffaele Montuoro <rmontuoro@tamu.edu> - initial release
+!   Apr 09, 2013 - Raffaele Montuoro <rmontuoro@tamu.edu> - Added: ocn_log_init,
+!                  ocn_set_logging, ocn_reset_logging
+!
+!   !USES:
+    use mod_kinds,         only : r4, r8
+
+    use mod_parallel,      only : inp_task  => InpThread, &
+                                  log_task  => OutThread, &
+                                  this_task => MyRank
+
+    use mod_iounits,       only : Iname, stdout
+
+    use ocn_utils,         only : sigAbort, ocn_abort
+
+    use seq_comm_mct     , only : seq_comm_inst,   &
+                                  seq_comm_name,   &
+                                  seq_comm_suffix, &
+                                  seq_comm_namelen
+
+    use shr_file_mod,      only : shr_file_getUnit,     &
+                                  shr_file_freeUnit,    &
+                                  shr_file_setIO,       &
+                                  shr_file_getLogUnit,  &
+                                  shr_file_setLogUnit,  &
+                                  shr_file_getLogLevel, &
+                                  shr_file_setLogLevel
+
+    use shr_mpi_mod,       only : shr_mpi_bcast
+
+    use shr_sys_mod,       only : shr_sys_flush
+
+    implicit none
+
+    private
+
+!   !PRIVATE DATA:
+
+    integer, parameter :: filename_len = 256
+
+    integer, parameter :: ocn_stdout = 6
+
+    character (9), parameter :: &
+           delim_fmt = "(72('-'))", &
+          ndelim_fmt = "(72('='))"
+
+    character (5), parameter :: &
+           blank_fmt = "(' ')"
+
+    character (len = *), parameter :: drv_inpfile = 'ocn_in'
+    character (len = *), parameter :: drv_iofile  = 'ocn_modelio.nml'
+
+    character (len = filename_len) :: input_script = ''
+    integer :: diag_level = 0
+
+    namelist /ocn_io/ input_script, &
+                      diag_level
+
+    integer, save :: shrloglev, shrlogunit
+
+!   !PUBLIC MEMBER FUNCTIONS:
+
+    public :: ocn_log
+    public :: ocn_log_delim
+    public :: ocn_log_init
+    public :: ocn_task_log
+    public :: ocn_read_drv_params
+    public :: ocn_set_logging
+    public :: ocn_reset_logging
+    public :: diag_level
+
+!EOP
+    interface ocn_log
+        module procedure log_char, &
+                         log_int,  &
+                         log_log,  &
+                         log_dbl,  &
+                         log_real
+    end interface
+
+    interface ocn_task_log
+        module procedure log_task_char
+    end interface
+
+contains
+
+!==============================================================================
+!BOP
+!   !ROUTINE: ocn_read_drv_params
+!   !INTERFACE:
+
+    subroutine ocn_read_drv_params(mpicom, nmlfile)
+
+!   !DESCRIPTION:
+!       Reads ocean driver parameters file
+!
+!   !REVISION HISTORY:
+!       Apr 23, 2012 - Raffaele Montuoro <rmontuoro@tamu.edu> - initial release
+!
+!   !USES:
+
+       implicit none
+
+!   !INPUT/OUTPUT PARAMETERS:
+
+       integer,                       intent(in) :: mpicom
+       character (len = *), optional, intent(in) :: nmlfile
+
+!EOP
+!BOC
+       ! --- Local variables ---
+
+       integer :: ierr, iunit
+       logical :: exists
+       character (len = filename_len) :: nml_inpfile
+
+       character (len = *), parameter :: subname = 'ocn_read_drv_params'
+
+       ! --- Begin
+
+       if (present(nmlfile)) then
+          nml_inpfile = trim(nmlfile)
+       else
+          nml_inpfile = drv_inpfile
+       end if
+
+       if (inp_task) then
+          inquire(file=trim(nml_inpfile), exist=exists)
+
+          if (exists) then
+             iunit = shr_file_getUnit()
+             open(unit = iunit, file = trim(nml_inpfile), action = 'read')
+             rewind(unit = iunit)
+             read(unit = iunit, nml = ocn_io, iostat = ierr)
+             close(unit = iunit)
+             call shr_file_freeUnit( iunit )
+
+             if (ierr /= 0) call ocn_abort(sigAbort, &
+              '('//trim(subname) // &
+              ') ERROR reading namelist ocn_io from '//trim(nml_inpfile))
+
+             Iname = trim(input_script)
+
+           end if
+       end if
+
+       call shr_mpi_bcast(Iname     , mpicom)
+       call shr_mpi_bcast(diag_level, mpicom)
+
+!EOC
+    end subroutine ocn_read_drv_params
+
+!==============================================================================
+!BOP
+!   !ROUTINE: ocn_log_init
+!   !INTERFACE:
+
+    subroutine ocn_log_init(mpicom, ocnid, iofile)
+
+!   !DESCRIPTION:
+!       Opens ocean log file
+!
+!   !REVISION HISTORY:
+!       Apr 09, 2013 - Raffaele Montuoro <rmontuoro@tamu.edu> - initial release
+!
+!   !USES:
+
+       implicit none
+
+!   !INPUT/OUTPUT PARAMETERS:
+
+       integer,                       intent(in) :: mpicom
+       integer,                       intent(in) :: ocnid
+       character (len = *), optional, intent(in) :: iofile
+
+!EOP
+!BOC
+       ! --- Local variables ---
+
+       character (len = filename_len)     :: io_file
+       character (len = seq_comm_namelen) :: inst_suffix
+
+       character (len = *), parameter :: subname = 'ocn_log_init'
+
+       ! --- Begin
+
+       if (present(iofile)) then
+          io_file = trim(iofile)
+       else
+          io_file = drv_iofile
+       end if
+
+       ! --- Get instance's suffix string ---
+!       inst_name   = seq_comm_name(ocnid)
+!       inst_index  = seq_comm_inst(ocnid)
+       inst_suffix = seq_comm_suffix(ocnid)
+
+       ! --- Open log file in model IO namelist, if present ---
+
+       if (log_task) then
+          stdout = shr_file_getUnit()
+          call shr_file_setIO(trim(io_file) // trim(inst_suffix), stdout)
+       else
+          stdout = ocn_stdout
+       end if
+
+       write(stdout,*) subname,stdout
+
+    end subroutine ocn_log_init
+
+!==============================================================================
+!BOP
+!   !ROUTINE: ocn_set_logging
+!   !INTERFACE:
+
+    subroutine ocn_set_logging(unit)
+
+!   !DESCRIPTION:
+!       Set logging to unit
+!
+!   !REVISION HISTORY:
+!       Apr 09, 2013 - Raffaele Montuoro <rmontuoro@tamu.edu> - initial release
+!
+!   !USES:
+
+       implicit none
+
+!   !INPUT/OUTPUT PARAMETERS:
+
+       integer :: unit
+
+!EOP
+!BOC
+       ! --- Local variables ---
+
+       character (len = *), parameter :: subname = 'ocn_set_logging'
+
+       ! --- Begin
+
+       call shr_file_getLogUnit (shrlogunit)
+       call shr_file_getLogLevel(shrloglev)
+       call shr_file_setLogUnit (unit)
+       write(stdout,*) subname,shrlogunit,unit
+
+!EOC
+    end subroutine ocn_set_logging
+
+!==============================================================================
+!BOP
+!   !ROUTINE: ocn_reset_logging
+!   !INTERFACE:
+
+    subroutine ocn_reset_logging
+
+!   !DESCRIPTION:
+!       Reset logging to original unit
+!
+!   !REVISION HISTORY:
+!       Apr 09, 2013 - Raffaele Montuoro <rmontuoro@tamu.edu> - initial release
+!
+!   !USES:
+
+       implicit none
+
+!   !INPUT/OUTPUT PARAMETERS:
+
+!EOP
+!BOC
+       ! --- Local variables ---
+
+       character (len = *), parameter :: subname = 'ocn_reset_logging'
+
+       ! --- Begin
+
+       write(stdout,*) subname,stdout,shrlogunit
+       call shr_file_setLogUnit (shrlogunit)
+       call shr_file_setLogLevel(shrloglev)
+
+!EOC
+    end subroutine ocn_reset_logging
+
+
+!==============================================================================
+!BOP
+!   !ROUTINE: ocn_iounit_flush
+!   !INTERFACE:
+
+    subroutine ocn_iounit_flush(unit)
+
+!   !DESCRIPTION:
+!       Flush I/O unit
+!
+!   !REVISION HISTORY:
+!       Apr 23, 2012 - Raffaele Montuoro <rmontuoro@tamu.edu> - initial release
+!
+!   !USES:
+
+       implicit none
+
+!   !INPUT/OUTPUT PARAMETERS:
+
+       integer, intent(in) :: unit
+!EOP
+!BOC
+       call shr_sys_flush(unit)
+
+!EOC
+    end subroutine ocn_iounit_flush
+
+!==============================================================================
+!BOP
+!   !ROUTINES: log_char, log_int, log_log, log_real, log_dbl
+!
+!   !INTERFACE: ocn_log (sub_name, message, value)
+!
+!   !DESCRIPTION:
+!       Log message and char/int/logical/real/double optional value to standard output
+!
+!   !REVISION HISTORY:
+!       Apr 23, 2012 - Raffaele Montuoro <rmontuoro@tamu.edu> - initial release
+!
+!   !USES:
+!
+!   !INPUT/OUTPUT PARAMETERS:
+!      character (len = *), intent(in) :: sub_name, message
+!      given type,          intent(in), optional :: value
+!EOP
+!BOC
+    subroutine log_char (sub_name, message, char_val)
+
+       implicit none
+
+       character (len = *), intent(in) :: sub_name, message
+       character (len = *), intent(in), optional :: char_val
+
+       character (len = *), parameter :: fmt1 = "(  5x, '(',a,') ',a)"
+       character (len = *), parameter :: fmt2 = "(  5x, '(',a,') ',a,' = ',a)"
+
+       if (log_task) then
+          if (present(char_val)) then
+             write(stdout,fmt2) trim(sub_name), trim(message), trim(char_val)
+          else
+             write(stdout,fmt1) trim(sub_name), trim(message)
+          end if
+          call shr_sys_flush(stdout)
+       end if
+
+    end subroutine log_char
+
+
+    subroutine log_int (sub_name, message, int_val)
+
+       implicit none
+
+       character (len = *), intent(in) :: sub_name, message
+       integer,             intent(in) :: int_val
+
+       character (len = *), parameter  :: fmt = "(  5x, '(',a,') ',a,' = ',i10)"
+
+       if (log_task) then
+          write(stdout,fmt) trim(sub_name), trim(message), int_val
+          call shr_sys_flush(stdout)
+       end if
+
+    end subroutine log_int
+
+    subroutine log_log (sub_name, message, log_val)
+
+       implicit none
+
+       character (len = *), intent(in) :: sub_name, message
+       logical,             intent(in) :: log_val
+
+       character (len = *), parameter  :: fmt = "(  5x, '(',a,') ',a,' = ',L3)"
+
+       if (log_task) then
+          write(stdout,fmt) trim(sub_name), trim(message), log_val
+          call shr_sys_flush(stdout)
+       end if
+
+    end subroutine log_log
+
+    subroutine log_dbl (sub_name, message, dbl_val)
+
+       implicit none
+
+       character (len = *), intent(in) :: sub_name, message
+       real(r8),            intent(in) :: dbl_val
+
+       character (len = *), parameter  :: fmt = "(  5x, '(',a,') ',a,' = ',1pe23.16)"
+
+       if (log_task) then
+          write(stdout,fmt) trim(sub_name), trim(message), dbl_val
+          call shr_sys_flush(stdout)
+       end if
+
+    end subroutine log_dbl
+
+    subroutine log_real (sub_name, message, real_val)
+
+       implicit none
+
+       character (len = *), intent(in) :: sub_name, message
+       real(r4),            intent(in) :: real_val
+
+       character (len = *), parameter  :: fmt = "(  5x, '(',a,') ',a,' = ',1pe23.16)"
+
+       if (log_task) then
+          write(stdout,fmt) trim(sub_name), trim(message), real_val
+          call shr_sys_flush(stdout)
+       end if
+
+    end subroutine log_real
+!EOC
+
+!==============================================================================
+!BOP
+!   !ROUTINE: ocn_log_delim
+!   !INTERFACE:
+
+    subroutine ocn_log_delim (message, unit)
+
+!   !DESCRIPTION:
+!       Log message to unit using a delimited format
+!
+!   !REVISION HISTORY:
+!       Apr 23, 2012 - Raffaele Montuoro <rmontuoro@tamu.edu> - initial release
+!
+!   !USES:
+
+       implicit none
+
+!   !INPUT/OUTPUT PARAMETERS:
+
+       character (len = *), intent(in) :: message
+       integer, optional,   intent(in) :: unit
+
+!EOP
+!BOC
+       ! --- Local variables ---
+
+       integer :: ounit
+
+       if (log_task) then
+          if (present(unit)) then
+             ounit = unit
+          else
+             ounit = stdout
+          end if
+          write(ounit, delim_fmt)
+          write(ounit, blank_fmt)
+          write(ounit, '(a)'    ) trim(message)
+          write(ounit, blank_fmt)
+          write(ounit, ndelim_fmt)
+          call shr_sys_flush(ounit)
+       end if
+
+!EOC
+    end subroutine ocn_log_delim
+
+!==============================================================================
+!BOP
+!   !ROUTINE: log_task_char
+!   !INTERFACE: ocn_task_log (sub_name, message, value)
+
+    subroutine log_task_char (sub_name, message, char_val)
+
+!   !DESCRIPTION:
+!       Log message and optional string to standard output including calling task #
+!
+!   !REVISION HISTORY:
+!       Apr 23, 2012 - Raffaele Montuoro <rmontuoro@tamu.edu> - initial release
+!
+!   !USES:
+
+       implicit none
+
+!   !INPUT/OUTPUT PARAMETERS:
+
+       character (len = *), intent(in) :: sub_name, message
+       character (len = *), intent(in), optional :: char_val
+
+!EOP
+!BOC
+       ! --- Local parameters ---
+
+       character (len = *), parameter :: fmt1 = "(  5x, '(',a,') (task:',i0,') ',a)"
+       character (len = *), parameter :: fmt2 = "(  5x, '(',a,') (task:',i0,') ',a,' = ',a)"
+
+       if (present(char_val)) then
+          write(stdout,fmt2) trim(sub_name), this_task, trim(message), trim(char_val)
+       else
+          write(stdout,fmt1) trim(sub_name), this_task, trim(message)
+       end if
+       call shr_sys_flush(stdout)
+
+!EOC
+    end subroutine log_task_char
+
+end module ocn_io_tools
